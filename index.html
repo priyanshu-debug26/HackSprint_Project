@@ -62,6 +62,7 @@
             font-size: 1.5rem;
             background: linear-gradient(to right, #ff8a00, #e52e71);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -150,9 +151,72 @@
             font-family: 'Inter', sans-serif;
         }
         .leaflet-popup-tip { background-color: var(--primary); }
-        .danger-stat { color: #f87171; font-weight: bold; }
         .safe-stat { color: #4ade80; font-weight: bold; }
 
+        /* Autocomplete Suggestions */
+        #suggestions-box {
+            position: absolute;
+            top: 100%; left: 0; width: 100%;
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px; margin-top: 4px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            display: none; flex-direction: column;
+            z-index: 1000; max-height: 250px; overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .suggestion-item {
+            padding: 10px 16px; cursor: pointer; color: white;
+            font-size: 0.95rem; text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            transition: background 0.2s;
+        }
+
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:hover { background: rgba(255,255,255,0.1); }
+
+        /* History Widget */
+        #history-box {
+            position: absolute;
+            bottom: 30px;
+            left: 20px;
+            z-index: 999;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            width: 260px;
+            display: none;
+            color: white;
+        }
+
+        #history-box h3 {
+            margin: 0 0 12px 0;
+            font-size: 1.1rem;
+            color: #fbbf24;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 8px;
+        }
+
+        .history-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+            font-size: 0.95rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .history-row:last-child { border-bottom: none; padding-bottom: 0; }
+        .history-date { color: var(--text-muted); }
+        .temp-max { color: #f87171; font-weight: 600; }
+        .temp-min { color: #60a5fa; font-weight: 600; margin-left: 8px; }
     </style>
 </head>
 
@@ -167,7 +231,10 @@
         </div>
         
         <div class="controls">
-            <input type="text" id="location-search" placeholder="Search City, Country..." onkeydown="if(event.key === 'Enter') searchLocation()">
+            <div style="position: relative; flex: 1; min-width: 200px;">
+                <input type="text" id="location-search" style="width: 100%; box-sizing: border-box;" placeholder="Search City, Country..." onkeydown="if(event.key === 'Enter') searchLocation()" oninput="handleSearchInput()">
+                <div id="suggestions-box"></div>
+            </div>
             <button class="btn-search" onclick="searchLocation()">Search Region</button>
             <button class="btn-location" onclick="useMyLocation()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
@@ -176,6 +243,11 @@
         </div>
 
         <div id="loading-status">System Initialized. Awaiting Input.</div>
+    </div>
+
+    <div id="history-box">
+        <h3>🌤️ 7-Day History</h3>
+        <div id="history-list"></div>
     </div>
 
     <div id="map"></div>
@@ -211,26 +283,76 @@
             el.style.color = color;
         }
 
+        let debounceTimer;
+
+        async function handleSearchInput() {
+            clearTimeout(debounceTimer);
+            const query = document.getElementById('location-search').value.trim();
+            const box = document.getElementById('suggestions-box');
+            
+            if (query.length < 2) {
+                if (box) box.style.display = 'none';
+                return;
+            }
+
+            debounceTimer = setTimeout(async () => {
+                try {
+                    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`);
+                    const data = await res.json();
+                    
+                    if (data.results && data.results.length > 0) {
+                        box.innerHTML = '';
+                        data.results.forEach(place => {
+                            const div = document.createElement('div');
+                            div.className = 'suggestion-item';
+                            const placeName = [place.name, place.admin1, place.country].filter(Boolean).join(", ");
+                            div.innerText = placeName;
+                            div.onclick = () => {
+                                document.getElementById('location-search').value = placeName;
+                                box.style.display = 'none';
+                                analyzeClimate(place.latitude, place.longitude, placeName);
+                            };
+                            box.appendChild(div);
+                        });
+                        box.style.display = 'flex';
+                    } else {
+                        box.style.display = 'none';
+                    }
+                } catch (err) {
+                    console.error("Autocomplete err:", err);
+                }
+            }, 300);
+        }
+
         async function searchLocation() {
             const query = document.getElementById('location-search').value.trim();
             if (!query) return;
+            const box = document.getElementById('suggestions-box');
+            if (box) box.style.display = 'none';
             
             setStatus(`🔍 Geocoding ${query}...`, '#60a5fa');
             try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+                const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`);
                 const data = await res.json();
-                if (data.length > 0) {
-                    const place = data[0];
-                    const nameParts = place.display_name.split(',');
-                    const cleanName = nameParts.length > 1 ? `${nameParts[0]}, ${nameParts[nameParts.length-1]}` : nameParts[0];
-                    analyzeClimate(parseFloat(place.lat), parseFloat(place.lon), cleanName);
+                if (data.results && data.results.length > 0) {
+                    const place = data.results[0];
+                    const placeName = [place.name, place.admin1, place.country].filter(Boolean).join(", ");
+                    document.getElementById('location-search').value = placeName;
+                    analyzeClimate(place.latitude, place.longitude, placeName);
                 } else {
-                    setStatus(`❌ Location not found. Try another city.`, '#f87171');
+                    setStatus(`❌ Location not found.`, '#f87171');
                 }
             } catch (err) {
                 setStatus('❌ Error connecting to geocoding API.', '#f87171');
             }
         }
+
+        document.addEventListener('click', (e) => {
+            if (e.target.id !== 'location-search') {
+                const box = document.getElementById('suggestions-box');
+                if (box) box.style.display = 'none';
+            }
+        });
 
         function useMyLocation() {
             setStatus('🛰️ Requesting coordinates...', '#60a5fa');
@@ -286,88 +408,103 @@
 
             try {
                 // Fetch 90 past days + 1 current day
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max&past_days=90&forecast_days=1&timezone=auto`;
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min&past_days=90&forecast_days=1&timezone=auto`;
                 const res = await fetch(url);
                 const data = await res.json();
                 
                 const times = data.daily.time;
                 const temps = data.daily.temperature_2m_max;
+                const mins = data.daily.temperature_2m_min;
+                // Find the latest day with valid data
+                let latestIndex = temps.length - 1;
+                while(temps[latestIndex] === null && latestIndex > 0) {
+                    latestIndex--;
+                }
                 
-                let anomalies = [];
+                let currentTemp = temps[latestIndex];
+                let currentDate = times[latestIndex];
                 
-                // Emulate Pandas .rolling(window=21)
-                for (let i = 20; i < temps.length; i++) {
-                    let windowTemps = temps.slice(i - 20, i + 1).filter(t => t !== null);
-                    if (windowTemps.length < 21) continue;
-                    
-                    let mean = windowTemps.reduce((a, b) => a + b, 0) / windowTemps.length;
-                    
-                    // Sample Standard Deviation like Pandas (ddof=1)
-                    let variance = windowTemps.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (windowTemps.length - 1);
-                    let std = Math.sqrt(variance);
-                    
-                    let upperDangerLimit = mean + (2 * std);
-                    let currentTemp = temps[i];
-                    
-                    if (currentTemp > upperDangerLimit) {
-                        anomalies.push({
-                            Date: times[i],
-                            Temp: currentTemp,
-                            Avg: mean,
-                            Limit: upperDangerLimit
-                        });
+                // Get the last 21 valid days for rolling window calculation
+                let windowTemps = temps.slice(Math.max(0, latestIndex - 20), latestIndex + 1).filter(t => t !== null);
+                
+                let mean = windowTemps.reduce((a, b) => a + b, 0) / windowTemps.length;
+                let variance = windowTemps.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (windowTemps.length - 1);
+                let std = Math.sqrt(variance);
+                
+                let limit = mean + (2 * std);
+                
+                // Round to 1 decimal place matching their python output
+                let rTemp = parseFloat(currentTemp.toFixed(1));
+                let rLimit = parseFloat(limit.toFixed(1));
+
+                let statusHex = "";
+                let alertTitle = "";
+                let alertIcon = "";
+
+                if (rTemp > rLimit) {
+                    statusHex = "#ef4444"; // Red
+                    alertTitle = "HEATWAVE ALERT";
+                    alertIcon = "🚨";
+                    setStatus(`${alertIcon} CRITICAL: Current Temp exceeds threshold!`, statusHex);
+                } else if (rTemp === rLimit) {
+                    statusHex = "#eab308"; // Yellow
+                    alertTitle = "WARNING LEVEL";
+                    alertIcon = "⚠️";
+                    setStatus(`${alertIcon} WARNING: Current Temp equals the Danger Limit.`, statusHex);
+                } else {
+                    statusHex = "#4ade80"; // Green
+                    alertTitle = "STABLE CLIMATE";
+                    alertIcon = "✅";
+                    setStatus(`${alertIcon} SAFE: Normal temperatures detected.`, statusHex);
+                }
+
+                let circle = L.circle([lat, lon], {
+                    color: statusHex, fillColor: statusHex, fillOpacity: 0.2, radius: 20000
+                }).addTo(map);
+                
+                let marker = L.circleMarker([lat, lon], {
+                    color: 'white', weight: 2, fillColor: statusHex, fillOpacity: 1, radius: 8
+                }).addTo(map);
+
+                let popupText = `
+                    <h3 style="color: ${statusHex}; margin: 0 0 10px 0;">${alertIcon} ${alertTitle}</h3>
+                    <b>Location:</b> ${regionName}<br>
+                    <b>Date:</b> ${currentDate}<br><br>
+                    <b>Current Temp:</b> <span style="font-weight: bold; color: ${statusHex}">${rTemp}°C</span><br>
+                    <b>21-Day Avg:</b> ${mean.toFixed(1)}°C<br>
+                    <b>Danger Threshold:</b> ${rLimit}°C<br>
+                `;
+                
+                if (rTemp > rLimit) {
+                    popupText += `<hr style="border-color: rgba(255,255,255,0.2)"/><i>Exceeded threshold by ${(rTemp - rLimit).toFixed(1)}°C</i>`;
+                } else if (rTemp < rLimit) {
+                    popupText += `<hr style="border-color: rgba(255,255,255,0.2)"/><i>${(rLimit - rTemp).toFixed(1)}°C below danger threshold.</i>`;
+                }
+
+                marker.bindPopup(popupText).openPopup();
+                activeLayers.push(circle, marker);
+
+                // Populate 7-Day History Widget
+                let historyHtml = "";
+                let startIndex = Math.max(0, latestIndex - 6);
+                for (let i = startIndex; i <= latestIndex; i++) {
+                    if (temps[i] !== null && mins[i] !== null) {
+                        let rowDate = new Date(times[i]).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                        let tMax = temps[i].toFixed(1);
+                        let tMin = mins[i].toFixed(1);
+                        historyHtml += `
+                            <div class="history-row">
+                                <span class="history-date">${rowDate}</span>
+                                <span class="history-temps">
+                                    <span class="temp-max">${tMax}°</span> 
+                                    <span class="temp-min">${tMin}°</span>
+                                </span>
+                            </div>
+                        `;
                     }
                 }
-                
-                if (anomalies.length > 0) {
-                    let latest = anomalies[anomalies.length - 1];
-                    let diffLimit = latest.Temp - latest.Limit;
-                    
-                    setStatus(`🚨 CRITICAL: Sudden Heat Spike Detected!`, '#ef4444');
-                    
-                    let circle = L.circle([lat, lon], {
-                        color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.3, radius: 20000
-                    }).addTo(map);
-                    
-                    let marker = L.circleMarker([lat, lon], {
-                        color: 'white', weight: 2, fillColor: '#ef4444', fillOpacity: 1, radius: 8
-                    }).addTo(map);
-
-                    let popupText = `
-                        <h3 style="color: #ef4444; margin: 0 0 10px 0;">⚠️ HEATWAVE ALERT</h3>
-                        <b>Location:</b> ${regionName}<br>
-                        <b>Spike Date:</b> ${latest.Date}<br><br>
-                        <b>Max Temp:</b> <span class="danger-stat">${latest.Temp.toFixed(1)}°C</span><br>
-                        <b>21-Day Avg:</b> ${latest.Avg.toFixed(1)}°C<br>
-                        <b>Danger Threshold:</b> ${latest.Limit.toFixed(1)}°C<br>
-                        <hr style="border-color: rgba(255,255,255,0.2)"/>
-                        <i>Exceeded normal variance by ${diffLimit.toFixed(1)}°C</i>
-                    `;
-                    marker.bindPopup(popupText).openPopup();
-                    
-                    activeLayers.push(circle, marker);
-                } else {
-                    let latestIndex = temps.length - 1;
-                    setStatus(`✅ Normal Conditions: No recent spikes.`, '#4ade80');
-                    
-                    let circle = L.circle([lat, lon], {
-                        color: '#4ade80', fillColor: '#4ade80', fillOpacity: 0.1, radius: 20000
-                    }).addTo(map);
-                    
-                    let marker = L.circleMarker([lat, lon], {
-                        color: 'white', weight: 2, fillColor: '#4ade80', fillOpacity: 1, radius: 8
-                    }).addTo(map);
-                    
-                    let popupText = `
-                        <h3 style="color: #4ade80; margin: 0 0 10px 0;">✅ STABLE CLIMATE</h3>
-                        <b>Location:</b> ${regionName}<br>
-                        <b>Latest Temp:</b> <span class="safe-stat">${temps[latestIndex]}°C</span><br>
-                        <i>Temperatures are within normal 21-day limits.</i>
-                    `;
-                    marker.bindPopup(popupText).openPopup();
-
-                    activeLayers.push(circle, marker);
-                }
+                document.getElementById('history-list').innerHTML = historyHtml;
+                document.getElementById('history-box').style.display = "block";
 
             } catch (err) {
                 console.error(err);
