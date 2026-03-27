@@ -4,120 +4,380 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Climate Anomaly Early Warning System</title>
+    <title>Climate risk | AI Anomaly System</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 
     <style>
+        :root {
+            --bg-dark: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --primary: #ef4444;
+            --primary-hover: #dc2626;
+            --secondary: #3b82f6;
+            --secondary-hover: #2563eb;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
         body {
             margin: 0;
             padding: 0;
-            background-color: #121212;
-            color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
 
-        #header {
-            padding: 20px;
+        #header-container {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 999;
+            width: 90%;
+            max-width: 800px;
+            
+            /* Glassmorphism */
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            
             text-align: center;
-            background-color: #1e1e1e;
-            border-bottom: 2px solid #ff4444;
+            transition: all 0.3s ease;
         }
 
-        /* The Map Canvas */
+        h2 {
+            margin: 0 0 8px 0;
+            font-weight: 800;
+            font-size: 1.5rem;
+            background: linear-gradient(to right, #ff8a00, #e52e71);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p { margin: 0; color: var(--text-muted); font-size: 0.95rem; }
+
+        .dashboard-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+        }
+
+        #live-time { font-weight: 600; color: #fbbf24; }
+        
+        .controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            background: rgba(15, 23, 42, 0.6);
+            color: white;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus { border-color: var(--secondary); }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        button:active { transform: scale(0.98); }
+
+        .btn-search {
+            background-color: var(--primary);
+            color: white;
+        }
+        .btn-search:hover { background-color: var(--primary-hover); }
+
+        .btn-location {
+            background-color: var(--secondary);
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-location:hover { background-color: var(--secondary-hover); }
+
+        #loading-status {
+            margin-top: 16px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            height: 20px;
+        }
+
         #map {
-            height: 80vh;
+            flex-grow: 1;
             width: 100%;
+            z-index: 1;
         }
 
-        /* Custom styling for the popup box */
+        /* Map UI Tweaks */
         .leaflet-popup-content-wrapper {
-            background-color: #2b2b2b;
+            background-color: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(8px);
             color: #ffffff;
-            border: 1px solid #ff4444;
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            font-family: 'Inter', sans-serif;
         }
+        .leaflet-popup-tip { background-color: var(--primary); }
+        .danger-stat { color: #f87171; font-weight: bold; }
+        .safe-stat { color: #4ade80; font-weight: bold; }
 
-        .leaflet-popup-tip {
-            background-color: #2b2b2b;
-        }
     </style>
 </head>
 
 <body>
 
-    <div id="header">
-        <h2>🔥 Spatiotemporal Climate Risk Dashboard</h2>
-        <p>Live Anomaly Detection System | Target Region: Kolkata</p>
-        <p id="live-time" style="font-weight: bold; color: #ffeb3b;"></p>
+    <div id="header-container">
+        <h2>Spatiotemporal Climate Risk Explorer</h2>
+        
+        <div class="dashboard-meta">
+            <span>Target Region: <strong id="target-region" style="color: white;">Kolkata</strong></span>
+            <span id="live-time"></span>
+        </div>
+        
+        <div class="controls">
+            <input type="text" id="location-search" placeholder="Search City, Country..." onkeydown="if(event.key === 'Enter') searchLocation()">
+            <button class="btn-search" onclick="searchLocation()">Search Region</button>
+            <button class="btn-location" onclick="useMyLocation()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                My Location
+            </button>
+        </div>
+
+        <div id="loading-status">System Initialized. Awaiting Input.</div>
     </div>
 
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-
     <script>
-        // Start a ticking clock for accurate IST time in the header
+        // --- 1. CLOCK --- //
         function updateClock() {
-            var liveTimeStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'medium' });
-            document.getElementById('live-time').innerText = `Current Time (IST): ${liveTimeStr}`;
+            document.getElementById('live-time').innerText = new Date().toLocaleString('en-IN', { 
+                timeZone: 'Asia/Kolkata', 
+                month: 'short', day: 'numeric', 
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            }) + " (IST)";
         }
         setInterval(updateClock, 1000);
         updateClock();
 
-        // 1. Initialize the map and set it to Kolkata's coordinates
-        var map = L.map('map').setView([22.5726, 88.3639], 10);
+        // --- 2. MAP SETUP --- //
+        var map = L.map('map', { zoomControl: false }).setView([22.5726, 88.3639], 10);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-        // 2. Add a Dark Mode map layer (Judges love dark mode)
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
             maxZoom: 19
         }).addTo(map);
 
-        // 3. Read the CSV file generated by your Python Brain
-        Papa.parse("smart_kolkata_anomalies.csv", {
-            download: true,
-            header: true,
-            skipEmptyLines: true,
-            complete: function (results) {
-                var data = results.data;
+        let activeLayers = [];
 
-                // Get the most recent anomaly (the last row in the CSV)
-                var latestAnomaly = data[data.length - 1];
+        // --- 3. GEOLOCATION & SEARCH --- //
+        function setStatus(msg, color = 'var(--text-muted)') {
+            const el = document.getElementById('loading-status');
+            el.innerText = msg;
+            el.style.color = color;
+        }
 
-                if (latestAnomaly && latestAnomaly.Date) {
-                    // 4. Draw a massive glowing red circle over Kolkata
-                    var dangerZone = L.circle([22.5726, 88.3639], {
-                        color: 'red',
-                        fillColor: '#f03',
-                        fillOpacity: 0.5,
-                        radius: 15000 // 15km radius
+        async function searchLocation() {
+            const query = document.getElementById('location-search').value.trim();
+            if (!query) return;
+            
+            setStatus(`🔍 Geocoding ${query}...`, '#60a5fa');
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                if (data.length > 0) {
+                    const place = data[0];
+                    const nameParts = place.display_name.split(',');
+                    const cleanName = nameParts.length > 1 ? `${nameParts[0]}, ${nameParts[nameParts.length-1]}` : nameParts[0];
+                    analyzeClimate(parseFloat(place.lat), parseFloat(place.lon), cleanName);
+                } else {
+                    setStatus(`❌ Location not found. Try another city.`, '#f87171');
+                }
+            } catch (err) {
+                setStatus('❌ Error connecting to geocoding API.', '#f87171');
+            }
+        }
+
+        function useMyLocation() {
+            setStatus('🛰️ Requesting coordinates...', '#60a5fa');
+            
+            if ("geolocation" in navigator && window.location.protocol !== 'file:') {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        analyzeClimate(position.coords.latitude, position.coords.longitude, "Your Precise Location");
+                    },
+                    (error) => {
+                        console.warn("GPS failed, falling back to IP:", error.message);
+                        fallbackToIP();
+                    },
+                    { enableHighAccuracy: true, timeout: 5000 }
+                );
+            } else {
+                console.warn("Geolocation API unavailable or blocked by file:// protocol. Falling back to IP.");
+                fallbackToIP();
+            }
+        }
+
+        async function fallbackToIP() {
+            setStatus('🛰️ Approximating location via IP (GPS unavailable)...', '#f59e0b');
+            try {
+                const res = await fetch('https://ipinfo.io/json');
+                const data = await res.json();
+                if (data.loc) {
+                    const coords = data.loc.split(',');
+                    analyzeClimate(parseFloat(coords[0]), parseFloat(coords[1]), `Your Area (${data.city}, ${data.region})`);
+                } else {
+                    setStatus('❌ IP Geolocation failed.', '#f87171');
+                }
+            } catch (err) {
+                setStatus('❌ Unable to detect location automatically.', '#f87171');
+                console.error(err);
+            }
+        }
+
+        // --- 4. PYTHON LOGIC CONVERTED TO JS --- //
+        /*
+            We use Open-Meteo's forecast/historical API to get the last 90 days of temp max.
+            Then we apply the 21-day rolling average & standard deviation (2x Danger Limit).
+        */
+        async function analyzeClimate(lat, lon, regionName) {
+            document.getElementById('target-region').innerText = regionName;
+            setStatus(`📡 Fetching climate data from Open-Meteo...`, '#60a5fa');
+            
+            map.flyTo([lat, lon], 10, { duration: 1.5 });
+            
+            // Clear existing markers
+            activeLayers.forEach(layer => map.removeLayer(layer));
+            activeLayers = [];
+
+            try {
+                // Fetch 90 past days + 1 current day
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max&past_days=90&forecast_days=1&timezone=auto`;
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                const times = data.daily.time;
+                const temps = data.daily.temperature_2m_max;
+                
+                let anomalies = [];
+                
+                // Emulate Pandas .rolling(window=21)
+                for (let i = 20; i < temps.length; i++) {
+                    let windowTemps = temps.slice(i - 20, i + 1).filter(t => t !== null);
+                    if (windowTemps.length < 21) continue;
+                    
+                    let mean = windowTemps.reduce((a, b) => a + b, 0) / windowTemps.length;
+                    
+                    // Sample Standard Deviation like Pandas (ddof=1)
+                    let variance = windowTemps.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (windowTemps.length - 1);
+                    let std = Math.sqrt(variance);
+                    
+                    let upperDangerLimit = mean + (2 * std);
+                    let currentTemp = temps[i];
+                    
+                    if (currentTemp > upperDangerLimit) {
+                        anomalies.push({
+                            Date: times[i],
+                            Temp: currentTemp,
+                            Avg: mean,
+                            Limit: upperDangerLimit
+                        });
+                    }
+                }
+                
+                if (anomalies.length > 0) {
+                    let latest = anomalies[anomalies.length - 1];
+                    let diffLimit = latest.Temp - latest.Limit;
+                    
+                    setStatus(`🚨 CRITICAL: Sudden Heat Spike Detected!`, '#ef4444');
+                    
+                    let circle = L.circle([lat, lon], {
+                        color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.3, radius: 20000
+                    }).addTo(map);
+                    
+                    let marker = L.circleMarker([lat, lon], {
+                        color: 'white', weight: 2, fillColor: '#ef4444', fillOpacity: 1, radius: 8
                     }).addTo(map);
 
-                    // Format current date and time in IST for the popup
-                    var now = new Date();
-                    var istOptions = {
-                        timeZone: 'Asia/Kolkata',
-                        day: '2-digit', month: '2-digit', year: 'numeric',
-                        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
-                    };
-                    var istDateTimeStr = now.toLocaleString('en-IN', istOptions);
-
-                    // 5. Add a popup with the exact AI data (displaying real-time IST)
-                    var popupText = `
-                        <h3 style="color: #ff4444; margin: 0 0 10px 0;">⚠️ HEATWAVE ALERT</h3>
-                        <b>Detected On:</b> ${istDateTimeStr} (IST)<br>
-                        <b>Spike Temp:</b> ${parseFloat(latestAnomaly.Max_Temp_C).toFixed(1)}°C<br>
-                        <b>Normal Baseline:</b> ${parseFloat(latestAnomaly['21_Day_Avg']).toFixed(1)}°C<br>
-                        <b>Danger Limit Exceeded:</b> ${parseFloat(latestAnomaly.Upper_Danger_Limit).toFixed(1)}°C
+                    let popupText = `
+                        <h3 style="color: #ef4444; margin: 0 0 10px 0;">⚠️ HEATWAVE ALERT</h3>
+                        <b>Location:</b> ${regionName}<br>
+                        <b>Spike Date:</b> ${latest.Date}<br><br>
+                        <b>Max Temp:</b> <span class="danger-stat">${latest.Temp.toFixed(1)}°C</span><br>
+                        <b>21-Day Avg:</b> ${latest.Avg.toFixed(1)}°C<br>
+                        <b>Danger Threshold:</b> ${latest.Limit.toFixed(1)}°C<br>
+                        <hr style="border-color: rgba(255,255,255,0.2)"/>
+                        <i>Exceeded normal variance by ${diffLimit.toFixed(1)}°C</i>
                     `;
-
-                    dangerZone.bindPopup(popupText).openPopup();
+                    marker.bindPopup(popupText).openPopup();
+                    
+                    activeLayers.push(circle, marker);
                 } else {
-                    console.log("No anomalies found or error reading CSV.");
+                    let latestIndex = temps.length - 1;
+                    setStatus(`✅ Normal Conditions: No recent spikes.`, '#4ade80');
+                    
+                    let circle = L.circle([lat, lon], {
+                        color: '#4ade80', fillColor: '#4ade80', fillOpacity: 0.1, radius: 20000
+                    }).addTo(map);
+                    
+                    let marker = L.circleMarker([lat, lon], {
+                        color: 'white', weight: 2, fillColor: '#4ade80', fillOpacity: 1, radius: 8
+                    }).addTo(map);
+                    
+                    let popupText = `
+                        <h3 style="color: #4ade80; margin: 0 0 10px 0;">✅ STABLE CLIMATE</h3>
+                        <b>Location:</b> ${regionName}<br>
+                        <b>Latest Temp:</b> <span class="safe-stat">${temps[latestIndex]}°C</span><br>
+                        <i>Temperatures are within normal 21-day limits.</i>
+                    `;
+                    marker.bindPopup(popupText).openPopup();
+
+                    activeLayers.push(circle, marker);
                 }
+
+            } catch (err) {
+                console.error(err);
+                setStatus(`❌ Analysis Failed. Data unavailable.`, '#f87171');
             }
-        });
+        }
+        
+        // Auto-load default
+        setTimeout(() => analyzeClimate(22.5726, 88.3639, 'Kolkata, India'), 500);
+
     </script>
 </body>
 
