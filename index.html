@@ -1,800 +1,229 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Climate risk | AI Anomaly System</title>
-
+    <title>Climate Risk | Orbital AI System</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-
     <style>
-        :root {
-            --bg-dark: #0f172a;
-            --glass-bg: rgba(30, 41, 59, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --primary: #ef4444;
-            --primary-hover: #dc2626;
-            --secondary: #3b82f6;
-            --secondary-hover: #2563eb;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            cursor: grab;
-            /* Globe grabbing cursor */
-        }
-
-        body:active {
-            cursor: grabbing;
-        }
-
-
-        #header-container {
-            position: absolute;
-            top: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 999;
-            width: 96%;
-            /* Makes the bar much longer */
-            max-width: 1400px;
-
-            background: var(--glass-bg);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            /* Sleeker corners */
-            padding: 12px 24px;
-            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
-
-            /* Turns it into a horizontal navbar */
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 20px;
-            transition: all 0.3s ease;
-        }
-
-        .header-brand {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            text-align: left;
-            min-width: 250px;
-        }
-
-        h2 {
-            margin: 0;
-            font-weight: 800;
-            font-size: 1.25rem;
-            /* Adjusted for navbar fit */
-            background: linear-gradient(to right, #ff8a00, #e52e71);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: 0.5px;
-        }
-
-        #loading-status {
-            margin-top: 4px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            height: 18px;
-        }
-
-        .dashboard-meta {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            /* Aligns text to the right */
-            margin-bottom: 0;
-            font-size: 0.85rem;
-            gap: 4px;
-            min-width: 200px;
-        }
-
-        #live-time {
-            font-weight: 600;
-            color: #fbbf24;
-            font-size: 0.95rem;
-        }
-
-        .controls {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            flex: 1;
-            /* Allows the center to stretch */
-            max-width: 600px;
-        }
-
-        input[type="text"] {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 10px 16px;
-            border-radius: 8px;
-            border: 1px solid var(--glass-border);
-            background: rgba(15, 23, 42, 0.6);
-            color: white;
-            font-family: inherit;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        input[type="text"]:focus {
-            border-color: var(--secondary);
-        }
-
-        /* Responsive design so it doesn't break on small screens */
-        @media (max-width: 950px) {
-            #header-container {
-                flex-direction: column;
-                padding: 16px;
-                gap: 15px;
-            }
-
-            .header-brand,
-            .dashboard-meta {
-                align-items: center;
-                text-align: center;
-            }
-
-            .controls {
-                width: 100%;
-                max-width: 100%;
-            }
-        }
-
-        h2 {
-            margin: 0 0 8px 0;
-            font-weight: 800;
-            font-size: 1.5rem;
-            background: linear-gradient(to right, #ff8a00, #e52e71);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        p {
-            margin: 0;
-            color: var(--text-muted);
-            font-size: 0.95rem;
-        }
-
-        .dashboard-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            font-size: 0.85rem;
-        }
-
-        #live-time {
-            font-weight: 600;
-            color: #fbbf24;
-        }
-
-        .controls {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        input[type="text"] {
-            flex: 1;
-            min-width: 200px;
-            padding: 12px 16px;
-            border-radius: 8px;
-            border: 1px solid var(--glass-border);
-            background: rgba(15, 23, 42, 0.6);
-            color: white;
-            font-family: inherit;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        input[type="text"]:focus {
-            border-color: var(--secondary);
-        }
-
-        button {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 8px;
-            font-family: inherit;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        button:active {
-            transform: scale(0.98);
-        }
-
-        .btn-search {
-            background-color: var(--primary);
-            color: white;
-        }
-
-        .btn-search:hover {
-            background-color: var(--primary-hover);
-        }
-
-        .btn-location {
-            background-color: var(--secondary);
-            color: white;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .btn-location:hover {
-            background-color: var(--secondary-hover);
-        }
-
-        #loading-status {
-            margin-top: 16px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            height: 20px;
-        }
-
-        #map {
-            flex-grow: 1;
-            width: 100%;
-            z-index: 1;
-        }
-
-        /* Custom 3D Globe Overlays */
-        .globe-marker {
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: bold;
-            color: white;
-            cursor: pointer;
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-            pointer-events: auto;
-            /* Required for clicking in Globe.gl */
-        }
-
-        .globe-marker:hover {
-            transform: scale(1.15);
-            box-shadow: 0 0 15px currentColor;
-        }
-
-        /* Replaces Leaflet's Popup for 3D */
-        #custom-popup {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 1000;
-            background-color: rgba(30, 41, 59, 0.95);
-            backdrop-filter: blur(12px);
-            color: #ffffff;
-            border: 2px solid var(--primary);
-            border-radius: 12px;
-            padding: 24px;
-            min-width: 280px;
-            display: none;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
-        }
-
-        .close-btn {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            font-size: 1.2rem;
-            cursor: pointer;
-        }
-
-        .close-btn:hover {
-            color: white;
-        }
-
-        #suggestions-box {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            width: 100%;
-            background: rgba(30, 41, 59, 0.95);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            border-radius: 8px;
-            margin-top: 4px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-            display: none;
-            flex-direction: column;
-            z-index: 1000;
-            max-height: 250px;
-            overflow-y: auto;
-            box-sizing: border-box;
-        }
-
-        .suggestion-item {
-            padding: 10px 16px;
-            cursor: pointer;
-            color: white;
-            font-size: 0.95rem;
-            text-align: left;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            transition: background 0.2s;
-        }
-
-        .suggestion-item:last-child {
-            border-bottom: none;
-        }
-
-        .suggestion-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        #history-box {
-            position: absolute;
-            bottom: 30px;
-            left: 20px;
-            z-index: 999;
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 16px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-            width: 260px;
-            display: none;
-            color: white;
-            pointer-events: auto;
-        }
-
-        #history-box h3 {
-            margin: 0 0 12px 0;
-            font-size: 1.1rem;
-            color: #fbbf24;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding-bottom: 8px;
-        }
-
-        .history-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 6px 0;
-            font-size: 0.95rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .history-row:last-child {
-            border-bottom: none;
-            padding-bottom: 0;
-        }
-
-        .history-date {
-            color: var(--text-muted);
-        }
-
-        .temp-max {
-            color: #f87171;
-            font-weight: 600;
-        }
-
-        .temp-min {
-            color: #60a5fa;
-            font-weight: 600;
-            margin-left: 8px;
-        }
-
-        .rain-data {
-            color: #00bfff;
-            font-size: 0.8rem;
-            margin-left: 8px;
-        }
+        :root { --bg-dark: #000000; --glass-bg: rgba(15, 23, 42, 0.75); --glass-border: rgba(255, 255, 255, 0.1); --primary: #ef4444; --secondary: #3b82f6; --text-main: #f8fafc; --text-muted: #94a3b8; }
+        body { margin: 0; padding: 0; background-color: var(--bg-dark); background-image: radial-gradient(circle at center, #111 0%, #000 100%); color: var(--text-main); font-family: 'Inter', sans-serif; overflow: hidden; display: flex; flex-direction: column; height: 100vh; cursor: grab; }
+        body:active { cursor: grabbing; }
+        #header-container { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 999; width: 90%; max-width: 800px; background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-border); border-radius: 16px; padding: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8); text-align: center; }
+        h2 { margin: 0 0 8px 0; font-weight: 800; font-size: 1.5rem; letter-spacing: 1px; background: linear-gradient(to right, #60a5fa, #c084fc); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        p { margin: 0; color: var(--text-muted); font-size: 0.95rem; }
+        .dashboard-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;}
+        #live-time { font-weight: 600; color: #fbbf24; }
+        .controls { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        input[type="text"] { flex: 1; min-width: 200px; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(0, 0, 0, 0.4); color: white; outline: none; transition: border-color 0.2s; }
+        input[type="text"]:focus { border-color: var(--secondary); }
+        button { padding: 12px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+        button:active { transform: scale(0.98); }
+        .btn-search { background-color: var(--primary); color: white; }
+        .btn-location { background-color: var(--secondary); color: white; display: flex; align-items: center; gap: 6px; }
+        #loading-status { margin-top: 16px; font-size: 0.9rem; font-weight: 600; height: 20px; }
+        #map { flex-grow: 1; width: 100%; z-index: 1; }
+        .globe-marker { padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; color: white; cursor: pointer; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); transition: transform 0.2s ease, box-shadow 0.2s ease; display: flex; align-items: center; gap: 6px; white-space: nowrap; pointer-events: auto; }
+        .globe-marker:hover { transform: scale(1.15); box-shadow: 0 0 15px currentColor; }
+        #custom-popup { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; background-color: rgba(15, 23, 42, 0.95); backdrop-filter: blur(12px); color: #ffffff; border: 2px solid var(--primary); border-radius: 12px; padding: 24px; min-width: 280px; display: none; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9); }
+        .close-btn { position: absolute; top: 10px; right: 15px; background: transparent; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; }
+        #suggestions-box { position: absolute; top: 100%; left: 0; width: 100%; background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); border-radius: 8px; margin-top: 4px; display: none; flex-direction: column; z-index: 1000; max-height: 250px; overflow-y: auto; }
+        .suggestion-item { padding: 10px 16px; cursor: pointer; color: white; font-size: 0.95rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .suggestion-item:hover { background: rgba(255,255,255,0.1); }
     </style>
 </head>
-
 <body>
-
     <div id="header-container">
-        <div class="header-brand">
-            <h2>Spatiotemporal Climate Risk Explorer</h2>
-            <div id="loading-status">System Initialized. Mapping Global Data.</div>
+        <h2>Orbital Climate Array</h2>
+        <div class="dashboard-meta">
+            <span>Target Region: <strong id="target-region" style="color: white;">Global View</strong></span>
+            <span id="live-time"></span>
         </div>
-
         <div class="controls">
-            <div style="position: relative; flex: 1; width: 100%;">
-                <input type="text" id="location-search" placeholder="Search City, Country..."
-                    onkeydown="if(event.key === 'Enter') searchLocation()" oninput="handleSearchInput()">
+            <div style="position: relative; flex: 1; min-width: 200px;">
+                <input type="text" id="location-search" placeholder="Search City..." onkeydown="if(event.key === 'Enter') searchLocation()" oninput="handleSearchInput()">
                 <div id="suggestions-box"></div>
             </div>
-            <button class="btn-search" onclick="searchLocation()">Search</button>
-            <button class="btn-location" onclick="useMyLocation()" title="My Location">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                    <circle cx="12" cy="10" r="3"></circle>
-                </svg>
-            </button>
+            <button class="btn-search" onclick="searchLocation()">Scan Region</button>
+            <button class="btn-location" onclick="useMyLocation()">My Location</button>
         </div>
-
-        <div class="dashboard-meta">
-            <span id="live-time"></span>
-            <span>Target: <strong id="target-region" style="color: white;">Global View</strong></span>
-        </div>
+        <div id="loading-status">System Initialized. Awaiting AI telemetry...</div>
     </div>
+
     <div id="custom-popup"></div>
-
-    <div id="history-box">
-        <h3 id="history-title">🌤️ 7-Day History</h3>
-        <div id="history-list"></div>
-    </div>
-
     <div id="map"></div>
 
     <script src="https://unpkg.com/three"></script>
     <script src="https://unpkg.com/globe.gl"></script>
-
     <script>
-        // --- 1. CLOCK --- //
         function updateClock() {
-            document.getElementById('live-time').innerText = new Date().toLocaleString('en-IN', {
-                timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric',
-                hour: '2-digit', minute: '2-digit', second: '2-digit'
-            }) + " (IST)";
+            document.getElementById('live-time').innerText = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) + " (IST)";
         }
-        setInterval(updateClock, 1000);
-        updateClock();
+        setInterval(updateClock, 1000); updateClock();
 
-        // --- 2. 3D GLOBE SETUP (Replacing Leaflet) --- //
-        const globeContainer = document.getElementById('map');
-
-        // Initialize the WebGL Globe
-        const world = Globe()(globeContainer)
+        // UPGRADE: Satellite Imagery & Atmosphere Glow
+        const world = Globe()(document.getElementById('map'))
             .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
             .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
-            .backgroundColor('#0f172a')
-            .pointOfView({ lat: 20, lng: 79, altitude: 2.5 }); // Start zoomed over India
+            .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
+            .showAtmosphere(true)
+            .atmosphereColor('lightskyblue')
+            .atmosphereAltitude(0.15)
+            .pointOfView({ lat: 20, lng: 79, altitude: 2.5 });
 
-        // Auto-rotate the globe for presentation appeal
         world.controls().autoRotate = true;
         world.controls().autoRotateSpeed = 0.5;
+        world.controls().addEventListener('start', () => world.controls().autoRotate = false);
 
-        // Array to hold our HTML markers
         let globeData = [];
+        let globeRings = [];
 
-        // Stop rotation when user interacts
-        world.controls().addEventListener('start', () => {
-            world.controls().autoRotate = false;
-        });
-
-        // --- 3. EXPANDED GLOBAL GRID --- //
-        // Adding many places to show off the temperature comparisons as requested
         const defaultCities = [
-            { name: "Delhi", lat: 28.7041, lon: 77.1025 },
-            { name: "Kolkata", lat: 22.5726, lon: 88.3639 },
-            { name: "Mumbai", lat: 19.0760, lon: 72.8777 },
-            { name: "Chennai", lat: 13.0827, lon: 80.2707 },
-            { name: "Tokyo", lat: 35.6762, lon: 139.6503 },
-            { name: "New York", lat: 40.7128, lon: -74.0060 },
-            { name: "London", lat: 51.5074, lon: -0.1278 },
-            { name: "Sydney", lat: -33.8688, lon: 151.2093 },
-            { name: "Paris", lat: 48.8566, lon: 2.3522 },
-            { name: "Cape Town", lat: -33.9249, lon: 18.4241 },
-            { name: "Rio de Janeiro", lat: -22.9068, lon: -43.1729 },
-            { name: "Dubai", lat: 25.2048, lon: 55.2708 },
-            { name: "Singapore", lat: 1.3521, lon: 103.8198 },
-            { name: "Moscow", lat: 55.7558, lon: 37.6173 },
-            { name: "Nairobi", lat: -1.2921, lon: 36.8219 },
-            { name: "Vancouver", lat: 49.2827, lon: -123.1207 }
+            { name: "Delhi", lat: 28.7041, lon: 77.1025 }, { name: "Mumbai", lat: 19.0760, lon: 72.8777 },
+            { name: "Tokyo", lat: 35.6762, lon: 139.6503 }, { name: "New York", lat: 40.7128, lon: -74.0060 },
+            { name: "Sydney", lat: -33.8688, lon: 151.2093 }, { name: "Dubai", lat: 25.2048, lon: 55.2708 }
         ];
 
         function setStatus(msg, color = 'var(--text-muted)') {
             const el = document.getElementById('loading-status');
-            el.innerText = msg;
-            el.style.color = color;
+            el.innerText = msg; el.style.color = color;
         }
 
-        // --- 4. GEOLOCATION & SEARCH --- //
         let debounceTimer;
         async function handleSearchInput() {
             clearTimeout(debounceTimer);
             const query = document.getElementById('location-search').value.trim();
             const box = document.getElementById('suggestions-box');
-            if (query.length < 2) { if (box) box.style.display = 'none'; return; }
+            if (query.length < 2) { box.style.display = 'none'; return; }
 
             debounceTimer = setTimeout(async () => {
-                try {
-                    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`);
-                    const data = await res.json();
-                    if (data.results && data.results.length > 0) {
-                        box.innerHTML = '';
-                        data.results.forEach(place => {
-                            const div = document.createElement('div');
-                            div.className = 'suggestion-item';
-                            const placeName = [place.name, place.admin1, place.country].filter(Boolean).join(", ");
-                            div.innerText = placeName;
-                            div.onclick = () => {
-                                document.getElementById('location-search').value = placeName;
-                                box.style.display = 'none';
-                                document.getElementById('custom-popup').style.display = 'none';
-                                analyzeClimate(place.latitude, place.longitude, placeName, true);
-                            };
-                            box.appendChild(div);
-                        });
-                        box.style.display = 'flex';
-                    } else { box.style.display = 'none'; }
-                } catch (err) { console.error(err); }
+                const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`);
+                const data = await res.json();
+                if (data.results) {
+                    box.innerHTML = '';
+                    data.results.forEach(place => {
+                        const div = document.createElement('div');
+                        div.className = 'suggestion-item';
+                        const placeName = [place.name, place.country].filter(Boolean).join(", ");
+                        div.innerText = placeName;
+                        div.onclick = () => {
+                            document.getElementById('location-search').value = placeName;
+                            box.style.display = 'none';
+                            analyzeClimate(place.latitude, place.longitude, placeName, true);
+                        };
+                        box.appendChild(div);
+                    });
+                    box.style.display = 'flex';
+                }
             }, 300);
         }
 
         async function searchLocation() {
             const query = document.getElementById('location-search').value.trim();
             if (!query) return;
-            const box = document.getElementById('suggestions-box');
-            if (box) box.style.display = 'none';
-
+            document.getElementById('suggestions-box').style.display = 'none';
             setStatus(`🔍 Geocoding ${query}...`, '#60a5fa');
             try {
                 const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`);
                 const data = await res.json();
-                if (data.results && data.results.length > 0) {
-                    const place = data.results[0];
-                    const placeName = [place.name, place.admin1, place.country].filter(Boolean).join(", ");
-                    document.getElementById('location-search').value = placeName;
-                    document.getElementById('custom-popup').style.display = 'none';
-                    analyzeClimate(place.latitude, place.longitude, placeName, true);
-                } else { setStatus(`❌ Location not found.`, '#f87171'); }
+                if (data.results) analyzeClimate(data.results[0].latitude, data.results[0].longitude, data.results[0].name, true);
             } catch (err) { setStatus('❌ API Error.', '#f87171'); }
         }
 
-        document.addEventListener('click', (e) => {
-            if (e.target.id !== 'location-search') {
-                const box = document.getElementById('suggestions-box');
-                if (box) box.style.display = 'none';
-            }
-        });
-
-        function useMyLocation() {
-            setStatus('🛰️ Requesting coordinates...', '#60a5fa');
-            if ("geolocation" in navigator && window.location.protocol !== 'file:') {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        document.getElementById('custom-popup').style.display = 'none';
-                        analyzeClimate(position.coords.latitude, position.coords.longitude, "Your Precise Location", true);
-                    },
-                    (error) => fallbackToIP(), { enableHighAccuracy: true, timeout: 5000 }
-                );
-            } else { fallbackToIP(); }
-        }
-
-        async function fallbackToIP() {
-            try {
-                const res = await fetch('https://ipinfo.io/json');
-                const data = await res.json();
-                if (data.loc) {
-                    const coords = data.loc.split(',');
-                    document.getElementById('custom-popup').style.display = 'none';
-                    analyzeClimate(parseFloat(coords[0]), parseFloat(coords[1]), `Your Area (${data.city})`, true);
-                }
-            } catch (err) { setStatus('❌ IP Geolocation failed.', '#f87171'); }
-        }
-
-        // Custom Popup Logic (Replaces Leaflet Popups)
         function showPopup(dataObj) {
             const popup = document.getElementById('custom-popup');
             popup.innerHTML = `<button class="close-btn" onclick="document.getElementById('custom-popup').style.display='none'">✖</button>` + dataObj.popupHTML;
             popup.style.borderColor = dataObj.color;
             popup.style.display = 'block';
-
-            // Stop rotation when looking at info
             world.controls().autoRotate = false;
         }
 
-        // --- 5. THE AI EMERGENCY LOGIC (Untouched core logic, updated visual bindings) --- //
         async function analyzeClimate(lat, lon, regionName, isFocused = false) {
             if (isFocused) {
                 document.getElementById('target-region').innerText = regionName;
-                setStatus(`📡 Analyzing Risk for ${regionName}...`, '#60a5fa');
-
-                // Fly the 3D camera to the location
-                world.pointOfView({ lat: lat, lng: lon, altitude: 0.8 }, 1500);
+                setStatus(`🧠 AI calculating 21-day variance for ${regionName}...`, '#60a5fa');
+                world.pointOfView({ lat: lat, lng: lon, altitude: 0.6 }, 1500); // Zoomed in closer for satellite view
             }
 
             try {
-                // Fetch 30 past days + 2 forecast days
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&past_days=30&forecast_days=2&timezone=auto`;
-                const res = await fetch(url);
-                const data = await res.json();
+                const res = await fetch(`http://localhost:8000/predict?lat=${lat}&lon=${lon}`);
+                const aiData = await res.json();
 
-                const times = data.daily.time;
-                const temps = data.daily.temperature_2m_max;
-                const mins = data.daily.temperature_2m_min;
-                const rain = data.daily.precipitation_sum;
-
-                const todayIdx = temps.length - 2;
-                const tomorrowIdx = temps.length - 1;
-
-                const tToday = temps[todayIdx];
-                const tTomorrow = temps[tomorrowIdx];
-                const rTomorrow = rain[tomorrowIdx];
-                const currentDate = times[todayIdx];
-
-                // Calculate 21-Day Rolling Average & StdDev
-                let windowTemps = temps.slice(Math.max(0, todayIdx - 20), todayIdx + 1).filter(t => t !== null);
-                let mean = windowTemps.reduce((a, b) => a + b, 0) / windowTemps.length;
-                let variance = windowTemps.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (windowTemps.length - 1);
-                let std = Math.sqrt(variance);
-                let limit = mean + (2 * std);
-
-                let rTempTomorrow = parseFloat(tTomorrow.toFixed(1));
-                let rLimit = parseFloat(limit.toFixed(1));
-
-                // --- EMERGENCY PREDICTION LOGIC --- //
-                let statusHex = "#4ade80"; // Green default
-                let alertTitle = "STABLE CLIMATE";
-                let alertIcon = "✅";
-
-                if (rTomorrow > 50.0) {
-                    statusHex = "#00bfff"; // Deep Blue (Flood)
-                    alertTitle = "CRITICAL FLOOD RISK";
-                    alertIcon = "🌊";
-                    if (isFocused) setStatus(`${alertIcon} HEAVY RAIN INCOMING: ${rTomorrow}mm expected!`, statusHex);
-                } else if (rTempTomorrow > rLimit) {
-                    statusHex = "#ef4444"; // Red (Heat)
-                    alertTitle = "SUDDEN HEAT SPIKE";
-                    alertIcon = "🚨";
-                    if (isFocused) setStatus(`${alertIcon} WARNING: Temp spiking to ${tTomorrow}°C!`, statusHex);
-                } else if (rTempTomorrow === rLimit) {
-                    statusHex = "#eab308"; // Yellow (Warning)
-                    alertTitle = "WARNING LEVEL";
-                    alertIcon = "⚠️";
-                    if (isFocused) setStatus(`${alertIcon} ALERT: Temp reaching Danger Limit.`, statusHex);
-                } else {
-                    if (isFocused) setStatus(`✅ ALL CLEAR: Normal conditions forecasted.`, statusHex);
+                if (aiData.error) {
+                    setStatus("❌ AI Backend Offline. Ensure model.py is running.", "#f87171");
+                    return;
                 }
 
-                let diffLimit = Math.abs(rTempTomorrow - rLimit).toFixed(1);
+                if (isFocused) setStatus(`${aiData.icon} Status: ${aiData.status}`, aiData.hex_color);
 
-                // Build HTML for Popup
+                // UPGRADE: Displaying the 21-day baseline to prove the math
                 let popupText = `
-                    <h3 style="color: ${statusHex}; margin: 0 0 10px 0;">${alertIcon} ${alertTitle}</h3>
-                    <b>Location:</b> ${regionName}<br>
-                    <b>21-Day Normal:</b> ${mean.toFixed(1)}°C<br>
-                    <b>Danger Threshold:</b> ${rLimit}°C<br>
+                    <h3 style="color: ${aiData.hex_color}; margin: 0 0 10px 0;">${aiData.icon} ${aiData.status}</h3>
+                    <div style="font-size: 0.9rem; color: #cbd5e1; margin-bottom: 12px;">
+                        <b>Target:</b> ${regionName}<br>
+                        <b>Current Temp:</b> ${aiData.current_temp.toFixed(1)}°C<br>
+                        <b>21-Day Baseline:</b> ${aiData.baseline_21_temp}°C
+                    </div>
                     <hr style="border-color: rgba(255,255,255,0.2); margin: 8px 0;"/>
-                    <b style="color: #fbbf24;">24-HOUR FORECAST:</b><br>
-                    <b>Incoming Temp:</b> ${rTempTomorrow}°C<br>
-                    <b>Incoming Rain:</b> ${rTomorrow.toFixed(1)} mm<br>
-                    <hr style="border-color: rgba(255,255,255,0.2); margin: 8px 0;"/>
+                    <b style="color: #fbbf24; font-size: 0.85rem; letter-spacing: 0.5px;">XGBOOST FORECAST (24H):</b><br>
+                    <div style="font-size: 1.1rem; margin-top: 6px;">
+                        🌡️ <b>Temp:</b> ${aiData.predicted_temp}°C<br>
+                        💧 <b>Rain:</b> ${aiData.predicted_rain} mm
+                    </div>
                 `;
-                if (statusHex === "#ef4444") {
-                    popupText += `<i>Exceeds limit by ${diffLimit}°C</i>`;
-                } else if (statusHex === "#4ade80") {
-                    popupText += `<i>${diffLimit}°C below danger threshold.</i>`;
-                } else if (statusHex === "#00bfff") {
-                    popupText += `<i>Major flooding possible.</i>`;
-                }
 
-                // Add to Globe Data Array
-                const markerData = {
-                    lat: lat,
-                    lng: lon,
-                    name: regionName,
-                    temp: tToday,
-                    color: statusHex,
-                    icon: alertIcon,
-                    popupHTML: popupText
-                };
-
-                // Remove existing marker for this city if updating, then add new
+                const markerData = { lat, lng: lon, name: regionName, temp: aiData.current_temp, color: aiData.hex_color, icon: aiData.icon, popupHTML: popupText };
+                
                 globeData = globeData.filter(d => d.name !== regionName);
                 globeData.push(markerData);
 
-                // Render the HTML markers on the 3D globe
-                world.htmlElementsData(globeData)
-                    .htmlElement(d => {
-                        const el = document.createElement('div');
-                        // This is the physical label sticking to the globe!
-                        el.innerHTML = `
-                            <div class="globe-marker" style="background: ${d.color}30; border: 1px solid ${d.color}; color: ${d.color};">
-                                <span>${d.icon}</span>
-                                <span style="color: white;">${d.temp.toFixed(1)}°C</span>
-                            </div>`;
-                        // When clicked on the globe, show popup and update history
-                        el.onclick = () => {
-                            world.pointOfView({ lat: d.lat, lng: d.lng, altitude: 0.8 }, 1000);
-                            showPopup(d);
-                            updateHistoryWidget(d.name, times, temps, mins, rain, todayIdx);
-                        };
-                        return el;
+                globeRings = globeRings.filter(d => d.name !== regionName);
+                if (aiData.threat_level > 0) {
+                    globeRings.push({ 
+                        lat, lng: lon, name: regionName, 
+                        maxR: aiData.threat_level * 1.5, 
+                        propagationSpeed: aiData.threat_level * 0.8, 
+                        color: aiData.hex_color 
                     });
-
-                // Add animated circles/rings around the cities mapped from globeData
-                world.ringsData(globeData)
-                    .ringColor(d => d.color)
-                    .ringMaxRadius(d => d.color === "#ef4444" || d.color === "#00bfff" ? 4 : 1.5)
-                    .ringPropagationSpeed(d => d.color === "#ef4444" || d.color === "#00bfff" ? 1.5 : 0.5)
-                    .ringRepeatPeriod(d => d.color === "#ef4444" || d.color === "#00bfff" ? 700 : 2500);
-
-                if (isFocused) {
-                    showPopup(markerData);
-                    updateHistoryWidget(regionName, times, temps, mins, rain, todayIdx);
                 }
+
+                world.htmlElementsData(globeData)
+                     .htmlElement(d => {
+                         const el = document.createElement('div');
+                         el.innerHTML = `<div class="globe-marker" style="border: 1px solid ${d.color}; color: ${d.color};">
+                                <span>${d.icon}</span><span style="color: white;">${d.temp.toFixed(1)}°C</span></div>`;
+                         el.onclick = () => {
+                             world.pointOfView({ lat: d.lat, lng: d.lng, altitude: 0.6 }, 1000);
+                             showPopup(d);
+                         };
+                         return el;
+                     });
+                     
+                world.ringsData(globeRings)
+                    .ringColor('color')
+                    .ringMaxRadius('maxR')
+                    .ringPropagationSpeed('propagationSpeed')
+                    .ringRepeatPeriod(800);
+
+                if (isFocused) showPopup(markerData);
 
             } catch (err) {
                 console.error(err);
-                if (isFocused) setStatus(`❌ Analysis Failed. Data unavailable.`, '#f87171');
+                if (isFocused) setStatus(`❌ Connection to Local AI Core Failed.`, '#f87171');
             }
         }
-
-        function updateHistoryWidget(regionName, times, temps, mins, rain, todayIdx) {
-            document.getElementById('history-title').innerText = `🌤️ ${regionName} (7-Day)`;
-            let historyHtml = "";
-            let startIndex = todayIdx - 6;
-
-            for (let i = startIndex; i <= todayIdx; i++) {
-                if (temps[i] !== null && mins[i] !== null) {
-                    let rowDate = new Date(times[i]).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                    let tMax = temps[i].toFixed(1);
-                    let tMin = mins[i].toFixed(1);
-                    let rMm = rain[i] > 0 ? `<span class="rain-data">💧${rain[i]}mm</span>` : '';
-
-                    historyHtml += `
-                        <div class="history-row">
-                            <span class="history-date">${rowDate}</span>
-                            <span class="history-temps">
-                                <span class="temp-max">${tMax}°</span> 
-                                <span class="temp-min">${tMin}°</span>
-                                ${rMm}
-                            </span>
-                        </div>
-                    `;
-                }
-            }
-            document.getElementById('history-list').innerHTML = historyHtml;
-            document.getElementById('history-box').style.display = "block";
-        }
-
-        // --- 6. STARTUP: LOAD GLOBAL GRID --- //
+        
         function loadGlobalGrid() {
-            setStatus("📡 Initializing AI Global Threat Scan...", "#fbbf24");
+            setStatus("📡 Initializing Neural Scan...", "#fbbf24");
             defaultCities.forEach((city, index) => {
-                // Stagger API calls to look like the system is booting up and scanning
                 setTimeout(() => {
                     analyzeClimate(city.lat, city.lon, city.name, false);
-                    if (index === defaultCities.length - 1) {
-                        setStatus("✅ System Active. Global monitoring engaged.", "#4ade80");
-                    }
-                }, index * 250); // Scans one city every 1/4 second
+                    if (index === defaultCities.length - 1) setStatus("✅ Neural Net Online. Monitoring engaged.", "#4ade80");
+                }, index * 300); 
             });
         }
 
-        setTimeout(loadGlobalGrid, 500);
-
+        setTimeout(loadGlobalGrid, 1000);
     </script>
 </body>
-
 </html>
